@@ -12,7 +12,7 @@ and request memory across the following operating environments:
 
 ### Building for Linux Host
 ```
- $ git clone https://github.com/OpenAMP/libmetal.git
+ $ git clone https://github.com/Xilinx/libmetal.git
  $ mkdir -p libmetal/<build directory>
  $ cd libmetal/<build directory>
  $ cmake ..
@@ -20,7 +20,7 @@ and request memory across the following operating environments:
 ```
 
 ### Cross Compiling for Linux Target
-Use [meta-openamp](https://github.com/openamp/meta-openamp) to build
+Use [meta-openamp](https://github.com/Xilinx/meta-openamp) to build
 libmetal library.
 Use package `libmetal` in your yocto config file.
 
