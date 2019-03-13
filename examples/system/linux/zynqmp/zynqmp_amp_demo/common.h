@@ -150,7 +150,7 @@ int shmem_throughput_demo();
  *
  * @param[in] notified - pointer to the notified variable
  */
-static inline void  wait_for_notified(atomic_int *notified)
+static inline void  wait_for_notified(atomic_flag *notified)
 {
 	unsigned int flags;
 
