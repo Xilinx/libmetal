@@ -127,7 +127,6 @@ int main(void)
 		LPERROR("shared memory throughput demo failed.\n");
 		goto out;
 	}
-
 out:
 	sys_cleanup();
 
