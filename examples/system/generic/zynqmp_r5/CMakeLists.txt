@@ -17,3 +17,4 @@ get_filename_component (_lib_path ${_lib_path} DIRECTORY)
 collect (PROJECT_LIB_DIRS ${_lib_path})
 
 add_subdirectory(zynqmp_amp_demo)
+add_subdirectory(ocm_demo)
