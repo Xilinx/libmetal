@@ -1,1 +1,2 @@
 add_subdirectory(zynqmp_amp_demo)
+add_subdirectory(ocm_demo)
