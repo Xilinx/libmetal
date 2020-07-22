@@ -12,6 +12,7 @@
 #include <sys/types.h>
 
 #include <metal/sys.h>
+#include <metal/device.h>
 #include <metal/utilities.h>
 #include "shmem.h"
 
@@ -156,6 +157,9 @@ int metal_sys_init(const struct metal_init_params *params)
 
 	/* Initialize ION shared memory pool */
 	metal_linux_init_shmem();
+
+	/* Initialize iova allocator */
+	metal_iova_init();
 	return 0;
 }
 
