@@ -17,6 +17,7 @@
 #include <sys/ioctl.h>
 #include <byteswap.h>
 #include "uio.h"
+#include "vfio.h"
 
 static struct linux_bus *to_linux_bus(struct metal_bus *bus)
 {
@@ -535,6 +536,15 @@ static struct linux_bus linux_bus[] = {
 	{
 		.bus_name	= "platform",
 		.drivers = {
+			{
+				.drv_name = "vfio-platform",
+				.mod_name = "vfio-platform",
+				.cls_name = "vfio",
+				.dev_open = metal_vfio_dev_open,
+				.dev_close = metal_vfio_dev_close,
+				.dev_dma_map = metal_vfio_dev_dma_map,
+				.dev_dma_unmap = metal_vfio_dev_dma_unmap,
+			},
 			{
 				.drv_name  = "uio_pdrv_genirq",
 				.mod_name  = "uio_pdrv_genirq",
