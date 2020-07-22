@@ -180,6 +180,8 @@ extern void metal_generic_dev_dma_unmap(struct metal_bus *bus,
 					int nents);
 #endif /* METAL_INTERNAL */
 
+#include <metal/system/@PROJECT_SYSTEM@/device.h>
+
 #ifdef __cplusplus
 }
 #endif
