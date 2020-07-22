@@ -88,6 +88,7 @@ struct metal_device {
 	struct metal_io_region regions[METAL_MAX_DEVICE_REGIONS]; /**< Array of
 							I/O regions in device*/
 	struct metal_list      node;       /**< Node on bus' list of devices */
+	struct metal_list      dmamem_list;    /**< list for device memory regions*/
 	int                    irq_num;    /**< Number of IRQs per device */
 	void                   *irq_info;  /**< IRQ ID */
 };
@@ -146,6 +147,28 @@ extern int metal_device_open(const char *bus_name, const char *dev_name,
  * @param[in]	device		Device handle.
  */
 extern void metal_device_close(struct metal_device *device);
+
+/**
+ * @brief	Add metal_io_region to device->dmamem_list.
+ * @param[in]	device		Device handle.
+ * @param[in]	region		metal_io_region handle
+ */
+extern void metal_device_add_dmamem(struct metal_device *device,
+				      struct metal_io_region * region);
+
+/**
+ * @brief	Get device address from virtual address.
+ * @param[in]	device		Device handle.
+ * @param[in]	virt		virtual memory address
+ */
+extern void *metal_device_virt2da(struct metal_device *device, void *virt);
+
+/**
+ * @brief	Get virtual address from device memory address.
+ * @param[in]	device		Device handle.
+ * @param[in]	phys		device memory address
+ */
+extern void *metal_device_da2virt(struct metal_device *device, void *phys);
 
 /**
  * @brief	Get an I/O region accessor for a device region.
