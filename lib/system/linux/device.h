@@ -80,6 +80,8 @@ struct linux_device {
 	void				*priv_data;
 };
 
+/* API for initializing the iova allocator */
+extern void metal_iova_init();
 /* Set the device's private data */
 extern void metal_device_set_pdata(struct linux_device *device, void *pdata);
 /* Set the device's DMA addressing capability limit */
