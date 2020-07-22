@@ -88,6 +88,8 @@ extern void metal_device_set_dmacap(struct metal_device *device, int val);
 extern int metal_device_get_dmacap(struct metal_device *device);
 /* API for executing system command */
 extern int metal_linux_exec_cmd(const char *command, char *path);
+/* Find and return device name based on the given device address */
+extern int metal_devname_from_addr(unsigned long addr, char *dev_name);
 /* API for checking if the file mentioned in path available or not */
 extern int metal_check_file_available(char *path);
 

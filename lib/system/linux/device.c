@@ -911,6 +911,64 @@ int metal_linux_exec_cmd(const char *command, char *path)
 	return 0;
 }
 
+int metal_devname_from_addr(unsigned long addr, char *dev_name)
+{
+	struct udev_enumerate *udev_enumerate;
+	struct udev_list_entry *list_entry;
+	struct udev_device *device;
+	struct udev *udev;
+	const char *sys_path;
+	const char *sys_name;
+	unsigned long value;
+	char path[PATH_MAX];
+	int fd, ret;
+
+	udev = udev_new();
+	udev_enumerate = udev_enumerate_new(udev);
+	udev_enumerate_scan_devices(udev_enumerate);
+	udev_list_entry_foreach(list_entry,
+				udev_enumerate_get_list_entry(udev_enumerate)) {
+		device = udev_device_new_from_syspath(udev_enumerate_get_udev(udev_enumerate),
+				udev_list_entry_get_name(list_entry));
+		if (device != NULL) {
+			sys_path = udev_device_get_syspath(device);
+
+			ret = snprintf(path, sizeof(path), "%s/of_node/%s",
+				       sys_path, "reg");
+			if (ret >= (int)sizeof(path)) {
+				metal_log(METAL_LOG_ERROR,
+					  "%s: %d: path greater than %d bytes.\n",
+					  __func__, __LINE__, sizeof(path));
+				continue;
+			}
+
+			fd = open(path, O_RDONLY);
+			if (fd < 0)
+				continue;
+
+			ret = read(fd, &value, 8);
+			if (ret < 0)
+				return ret;
+
+			value = bswap_64(value);
+
+			if (value == addr) {
+				sys_name = udev_device_get_sysname(device);
+				strcpy(dev_name, sys_name);
+				udev_device_unref(device);
+				udev_unref(udev);
+				return 0;
+			}
+
+			udev_device_unref(device);
+		}
+        }
+
+	udev_unref(udev);
+	dev_name = NULL;
+	return -EINVAL;
+}
+
 int metal_linux_get_device_property(struct metal_device *device,
 				    const char *property_name,
 				    void *output, int len)
