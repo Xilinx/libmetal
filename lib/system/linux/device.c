@@ -742,6 +742,12 @@ int metal_linux_get_device_property(struct metal_device *device,
 	return status < 0 ? -errno : 0;
 }
 
+/* Set the device's private data */
+void metal_device_set_pdata(struct linux_device *device, void *pdata)
+{
+	device->priv_data = pdata;
+}
+
 /* Set the device's DMA addressing capability limit */
 void metal_device_set_dmacap(struct metal_device *device, int val) {
 	struct linux_device *ptr;
