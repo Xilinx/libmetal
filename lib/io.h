@@ -81,6 +81,7 @@ struct metal_io_region {
 	unsigned int		mem_flags;  /**< memory attribute of the
 						 I/O region */
 	struct metal_io_ops	ops;        /**< I/O region operations */
+	struct metal_list	list;       /**< linked list */
 };
 
 /**
