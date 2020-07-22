@@ -73,7 +73,14 @@ struct linux_device {
 	struct sysfs_device		*sdev;
 	struct sysfs_attribute		*override;
 	int				fd;
+	/* Store the dma addressing capability of device */
+	int				dma_cap;
 };
+
+/* Set the device's DMA addressing capability limit */
+extern void metal_device_set_dmacap(struct metal_device *device, int val);
+/* Get the device's DMA addressing capability limit */
+extern int metal_device_get_dmacap(struct metal_device *device);
 
 #ifdef __cplusplus
 }

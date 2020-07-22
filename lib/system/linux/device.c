@@ -742,3 +742,16 @@ int metal_linux_get_device_property(struct metal_device *device,
 	return status < 0 ? -errno : 0;
 }
 
+/* Set the device's DMA addressing capability limit */
+void metal_device_set_dmacap(struct metal_device *device, int val) {
+	struct linux_device *ptr;
+	ptr = metal_container_of(device, struct linux_device, device);
+	ptr->dma_cap = val;
+}
+
+/* Get the device's DMA addressing capability limit */
+int metal_device_get_dmacap(struct metal_device *device) {
+	struct linux_device *ptr;
+	ptr = metal_container_of(device, struct linux_device, device);
+	return ptr->dma_cap;
+}
