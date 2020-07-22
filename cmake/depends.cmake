@@ -15,9 +15,9 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     add_definitions(-DHAVE_HUGETLBFS_H)
   endif(HUGETLBFS_FOUND)
 
-  find_package (LibSysFS REQUIRED)
-  collect (PROJECT_INC_DIRS "${LIBSYSFS_INCLUDE_DIR}")
-  collect (PROJECT_LIB_DEPS "${LIBSYSFS_LIBRARIES}")
+  find_package (LibUdev REQUIRED)
+  collect (PROJECT_INC_DIRS "${LIBUDEV_INCLUDE_DIR}")
+  collect (PROJECT_LIB_DEPS "${LIBUDEV_LIBRARIES}")
 
   find_package(Threads REQUIRED)
   collect (PROJECT_LIB_DEPS "${CMAKE_THREAD_LIBS_INIT}")
