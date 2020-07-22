@@ -542,6 +542,7 @@ static struct linux_bus linux_bus[] = {
 				.cls_name = "vfio",
 				.dev_open = metal_vfio_dev_open,
 				.dev_close = metal_vfio_dev_close,
+				.dev_irq_ack  = metal_vfio_dev_irq_ack,
 				.dev_dma_map = metal_vfio_dev_dma_map,
 				.dev_dma_unmap = metal_vfio_dev_dma_unmap,
 			},

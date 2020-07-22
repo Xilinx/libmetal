@@ -43,6 +43,7 @@
 #include <metal/mutex.h>
 #include <metal/alloc.h>
 #include <metal/device.h>
+#include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <linux/vfio.h>
 #include <stdio.h>
@@ -85,6 +86,10 @@ struct vfio_pdata {
 	int group;
 	/* device id */
 	int device;
+	/* number of irqs device has */
+	int irq_num;
+	/* the irq type info for each irq */
+	void *irq_flags;
 };
 
 /* IOVA level meta data */
@@ -99,6 +104,67 @@ struct level_data {
 
 /* The meta data for iova allocator */
 static struct level_data ldata[TOTAL_LEVELS];
+
+/* Set the irq info based on the index value */
+static void set_irq_info(struct linux_device *ldev,
+			 int index,
+			 int val)
+{
+	if (ldev->device.irq_num > 1) {
+		*(int *)((char *)ldev->device.irq_info + index * sizeof(int)) = val;
+	} else {
+		ldev->device.irq_info = (void *)(intptr_t)val;
+	}
+}
+
+/* Get the irq info for the index value */
+static int get_irq_info(struct linux_device *ldev,
+			int index)
+{
+	int TmpVal;
+
+	if (ldev->device.irq_num > 1) {
+		TmpVal = *(int *)((char *)ldev->device.irq_info + index * sizeof(int));
+	} else {
+		TmpVal = (intptr_t)(ldev->device.irq_info);
+	}
+
+	return TmpVal;
+}
+
+/* Set the irq type flags for the given index */
+static void set_irq_flags(struct linux_device *ldev,
+			 int index,
+			 int flags)
+{
+	struct vfio_pdata *pdata;
+
+	pdata = (struct vfio_pdata *)ldev->priv_data;
+
+	if (ldev->device.irq_num > 1) {
+		*(int *)((char *)pdata->irq_flags + index * sizeof(int)) = flags;
+	} else {
+		pdata->irq_flags = (void *)(intptr_t)flags;
+	}
+}
+
+/* Get the irq type flags for the given index */
+static int get_irq_flags(struct linux_device *ldev,
+			int index)
+{
+	int TmpVal;
+	struct vfio_pdata *pdata;
+
+	pdata = (struct vfio_pdata *)ldev->priv_data;
+
+	if (ldev->device.irq_num > 1) {
+		TmpVal = *(int *)((char *)pdata->irq_flags + index * sizeof(int));
+	} else {
+		TmpVal = (intptr_t)(pdata->irq_flags);
+	}
+
+	return TmpVal;
+}
 
 /* This checks whether the node index is free or not */
 static bool node_is_busy(int node_index,
@@ -779,6 +845,79 @@ static int vfio_init(int group_id, struct linux_device *ldev)
 		ldev->device.num_regions++;
 	}
 
+	/* Populate the total number of irqs available for future usage */
+	ldev->device.irq_num =  device_info.num_irqs;
+
+	/*
+	 * If irq_num > 1, then allocate memory for storing irq_info and
+	 * irq_flags. When irq_num == 1, the directly device.irq_info and
+	 * device.irq_flags for storing information.
+	 */
+	if (ldev->device.irq_num > 1) {
+		ldev->device.irq_info =
+			(void *)malloc(ldev->device.irq_num * sizeof(int));
+		pdata->irq_flags =
+			(void *)malloc(ldev->device.irq_num * sizeof(int));
+	}
+
+	/* Store the private data in struct linux_device */
+	metal_device_set_pdata(ldev, (void *)pdata);
+
+	for (unsigned int i = 0; i < device_info.num_irqs; i ++) {
+		struct vfio_irq_info irq_info =
+					{ .argsz = sizeof(irq_info) };
+		int size = sizeof(struct vfio_irq_set) + sizeof(int);
+		struct vfio_irq_set *irq_set =
+					(struct vfio_irq_set *)malloc(size);
+		int event_fd = eventfd(0, 0);
+		int *efd_ptr;
+
+		/* Set the irq index */
+		irq_info.index = i;
+
+		/* Get the irq information */
+		ret = ioctl(device, VFIO_DEVICE_GET_IRQ_INFO, &irq_info);
+		if(ret) {
+			metal_log(METAL_LOG_ERROR,
+				  "Could not get VFIO device irq info\n");
+			return -ENODEV;
+		}
+
+		metal_log(METAL_LOG_DEBUG, "index=0x%x flags=0x%x count=0x%x\n",
+			  irq_info.index, irq_info.flags, irq_info.count);
+
+		memset(irq_set, 0, size);
+
+		/*
+		 * Populate irq_set for communicating with vfio-platform
+		 * driver for registering eventfd on irq number represented
+		 * using irq_info.index
+		 */
+		irq_set->argsz = size;
+		irq_set->index = irq_info.index;
+		irq_set->start = 0;
+		irq_set->flags = VFIO_IRQ_SET_DATA_EVENTFD |
+				 VFIO_IRQ_SET_ACTION_TRIGGER;
+		irq_set->count = 1;
+		efd_ptr = (int *)&irq_set->data;
+		*efd_ptr = event_fd;
+
+		ret = ioctl(device, VFIO_DEVICE_SET_IRQS, irq_set);
+		if(ret) {
+			metal_log(METAL_LOG_ERROR,
+					"Could not set VFIO device irq\n");
+			return -ENODEV;
+		}
+
+		/* Set the eventfd for the irq */
+		set_irq_info(ldev, i, event_fd);
+
+		/* Set the irq type flags for the irq */
+		set_irq_flags(ldev, i, irq_info.flags);
+
+		metal_linux_irq_register_dev(&ldev->device, event_fd);
+	}
+
 	return 0;
 }
 
@@ -1147,6 +1286,64 @@ int metal_vfio_dev_open(struct linux_bus *lbus,
 		  lbus->bus_name, ldev->dev_name);
 
 	return 0;
+}
+
+void metal_vfio_dev_irq_ack(struct linux_bus *lbus,
+			    struct linux_device *ldev,
+			    int irq)
+
+{
+	int ret;
+	int irq_flags;
+	int index = -1;
+	uint64_t val;
+	struct vfio_irq_set irq_set = { .argsz = sizeof(struct vfio_irq_set) };
+	struct vfio_pdata *pdata;
+
+	(void)lbus;
+
+	pdata = (struct vfio_pdata *)ldev->priv_data;
+
+	ret = read(irq, (void *)&val, sizeof(val));
+	if (ret < 0) {
+		metal_log(METAL_LOG_ERROR,
+			  "%s, read vfio irq fd %d failed: %d.\n",
+			  __func__, irq, ret);
+		return;
+	}
+
+	/* Find valid irq index */
+	for (int i = 0, TmpVal; i < ldev->device.irq_num; i++) {
+		TmpVal = get_irq_info(ldev, i);
+		if (TmpVal == irq) {
+			index = i;
+			break;
+		}
+	}
+
+	if (index == -1 ) {
+		metal_log(METAL_LOG_ERROR,
+			  "Could not find VFIO index for irq = %d\n", irq);
+		return;
+	}
+
+	irq_flags = get_irq_flags(ldev, index);
+
+	/* Unmask the irq, which got automatically masked by vfio irq handler */
+	if (irq_flags & VFIO_IRQ_INFO_AUTOMASKED) {
+		irq_set.index = index;
+		irq_set.start = 0;
+		irq_set.flags = VFIO_IRQ_SET_DATA_NONE |
+				VFIO_IRQ_SET_ACTION_UNMASK;
+		irq_set.count = 1;
+
+		ret = ioctl(pdata->device, VFIO_DEVICE_SET_IRQS, irq_set);
+		if(ret) {
+			metal_log(METAL_LOG_ERROR,
+					"Could not set VFIO device irq\n");
+			return;
+		}
+	}
 }
 
 int metal_vfio_dev_dma_map(struct linux_bus *lbus,
