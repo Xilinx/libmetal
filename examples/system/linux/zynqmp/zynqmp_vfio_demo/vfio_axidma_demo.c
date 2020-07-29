@@ -62,7 +62,7 @@ static unsigned long __XAxiDma_MetalMap(struct metal_device *DevicePtr,
 		return 0;
 	}
 
-	metal_device_add_ioregion(DevicePtr, sg_in.io);
+	metal_device_add_dmamem(DevicePtr, sg_in.io);
 
 	return (unsigned long)*sg_in.io->physmap;
 }
