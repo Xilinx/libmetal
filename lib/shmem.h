@@ -23,7 +23,8 @@ extern "C" {
 #endif
 
 /** \defgroup shmem Shared Memory Interfaces
- *  @{ */
+ *  @{
+ */
 
 #define METAL_SHM_DIR_DEV_R  1U /**< shmem direction, device read */
 #define METAL_SHM_DIR_DEV_W  2U /**< shmem direction, device write */

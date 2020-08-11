@@ -23,7 +23,8 @@ extern "C" {
 #endif
 
 /** \defgroup device Bus Abstraction
- *  @{ */
+ *  @{
+ */
 
 #ifndef METAL_MAX_DEVICE_REGIONS
 #define METAL_MAX_DEVICE_REGIONS	32
@@ -43,8 +44,8 @@ struct metal_bus_ops {
 	void		(*dev_close)(struct metal_bus *bus,
 				     struct metal_device *device);
 	void		(*dev_irq_ack)(struct metal_bus *bus,
-				     struct metal_device *device,
-				     int irq);
+				       struct metal_device *device,
+				       int irq);
 	int		(*dev_dma_map)(struct metal_bus *bus,
 				       struct metal_device *device,
 				       uint32_t dir,
@@ -52,10 +53,10 @@ struct metal_bus_ops {
 				       int nents_in,
 				       struct metal_sg *sg_out);
 	void		(*dev_dma_unmap)(struct metal_bus *bus,
-				       struct metal_device *device,
-				       uint32_t dir,
-				       struct metal_sg *sg,
-				       int nents);
+					 struct metal_device *device,
+					 uint32_t dir,
+					 struct metal_sg *sg,
+					 int nents);
 	int		(*dev_shm_attach)(struct metal_bus *bus,
 					  struct metal_generic_shmem *shm,
 					  struct metal_device *dev,
@@ -82,10 +83,10 @@ extern struct metal_bus metal_generic_bus;
 struct metal_device {
 	const char             *name;       /**< Device name */
 	struct metal_bus       *bus;        /**< Bus that contains device */
-	unsigned               num_regions; /**< Number of I/O regions in
-					      device */
+	unsigned int           num_regions; /**< Number of I/O regions in
+						 device */
 	struct metal_io_region regions[METAL_MAX_DEVICE_REGIONS]; /**< Array of
-                                                        I/O regions in device*/
+							I/O regions in device*/
 	struct metal_list      node;       /**< Node on bus' list of devices */
 	struct metal_list      dmamem_list;    /**< list for device memory regions*/
 	int                    irq_num;    /**< Number of IRQs per device */
@@ -177,7 +178,7 @@ extern void *metal_device_da2virt(struct metal_device *device, void *phys);
  * @return I/O accessor handle, or NULL on failure.
  */
 static inline struct metal_io_region *
-metal_device_io_region(struct metal_device *device, unsigned index)
+metal_device_io_region(struct metal_device *device, unsigned int index)
 {
 	return (index < device->num_regions
 		? &device->regions[index]

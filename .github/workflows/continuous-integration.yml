@@ -1,0 +1,49 @@
+name: libmetal Continuous Integration
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - docs/**
+      - cmake/**
+      - scripts/**
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - docs/**
+      - cmake/**
+      - scripts/**
+
+jobs:
+  nr_tests:
+    name: nonreg tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: |
+        sudo apt-get update && sudo apt-get install libsysfs-dev
+        cmake . -Bbuild
+    - name: build
+      run: |
+        cd build
+        make
+    - name: execute test
+      run: |
+        cd build
+        make test
+    - name: test logs
+      if: failure()
+      run: |
+        cat build/Testing/Temporary/LastTest.log
+        exit 1
+
+  checkpatch_review:
+    name: checkpatch review
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Run checkpatch review
+      uses: webispy/checkpatch-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
