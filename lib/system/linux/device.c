@@ -173,9 +173,6 @@ static int metal_uio_dev_open(struct linux_bus *lbus, struct linux_device *ldev)
 	void *virt;
 	int irq_info;
 
-	ldev->fd = -1;
-	ldev->device.irq_info = (void *)-1;
-
 	ldev->udev = udev_new();
 	if (!ldev->udev) {
 		metal_log(METAL_LOG_ERROR, "%s: failed to allocated udev\n",
@@ -613,11 +610,75 @@ static int metal_linux_dev_open(struct metal_bus *bus,
 	struct linux_bus *lbus = to_linux_bus(bus);
 	struct linux_device *ldev = NULL;
 	struct linux_driver *ldrv;
+	struct udev_device *udev_device;
+	struct udev *udev;
+	const char *drv_name;
 	int error;
 
 	ldev = malloc(sizeof(*ldev));
 	if (!ldev)
 		return -ENOMEM;
+
+	/* Reset device data. */
+	memset(ldev, 0, sizeof(*ldev));
+	strncpy(ldev->dev_name, dev_name, sizeof(ldev->dev_name) - 1);
+	ldev->fd = -1;
+	ldev->device.irq_info = (void *)-1;
+	ldev->device.bus = bus;
+
+	udev = udev_new();
+	if (!udev) {
+		metal_log(METAL_LOG_ERROR, "%s: failed to allocated udev\n",
+			  __func__);
+		return -ENODEV;
+	}
+
+	udev_device = udev_device_new_from_subsystem_sysname(udev,
+				lbus->bus_name, ldev->dev_name);
+	if (!udev_device) {
+		udev_unref(udev);
+		metal_log(METAL_LOG_ERROR, "%s: udev_device %s:%s not found\n",
+			  __func__, lbus->bus_name, ldev->dev_name);
+		return -ENODEV;
+	}
+
+	drv_name = udev_device_get_driver(udev_device);
+
+	/* Check if device has binded with any allowed drivers */
+	for_each_linux_driver(lbus, ldrv) {
+
+		metal_log(METAL_LOG_INFO, "%s: checking driver %s,%s,%s\n",
+			  __func__, ldrv->drv_name, ldev->dev_name, drv_name);
+
+		/* Break if no driver name is found */
+		if (!drv_name)
+			break;
+
+		if (!strcmp(drv_name, ldrv->drv_name)) {
+			metal_log(METAL_LOG_INFO, "%s: driver %s bound to %s\n",
+				  __func__, drv_name, ldev->dev_name);
+
+			ldev->ldrv = ldrv;
+			error = ldrv->dev_open(lbus, ldev);
+			if (error) {
+				metal_log(METAL_LOG_ERROR,
+					  "%s: failed to open %s\n",
+					  __func__, ldev->dev_name);
+				ldrv->dev_close(lbus, ldev);
+				return -ENODEV;
+			} else {
+				*device = &ldev->device;
+				(*device)->name = ldev->dev_name;
+
+				metal_list_add_tail(&bus->devices,
+						    &(*device)->node);
+				return 0;
+			}
+		}
+	}
+
+	udev_device_unref(udev_device);
+	udev_unref(udev);
 
 	for_each_linux_driver(lbus, ldrv) {
 
@@ -625,18 +686,7 @@ static int metal_linux_dev_open(struct metal_bus *bus,
 		if ((ldrv->is_drv_ready == false) || !ldrv->dev_open)
 			continue;
 
-		/* Allocate a linux device if we haven't already. */
-		if (!ldev)
-			ldev = malloc(sizeof(*ldev));
-		if (!ldev)
-			return -ENOMEM;
-
-		/* Reset device data. */
-		memset(ldev, 0, sizeof(*ldev));
-		strncpy(ldev->dev_name, dev_name, sizeof(ldev->dev_name) - 1);
-		ldev->fd = -1;
 		ldev->ldrv = ldrv;
-		ldev->device.bus = bus;
 
 		/* Try and open the device. */
 		error = ldrv->dev_open(lbus, ldev);
