@@ -1237,9 +1237,6 @@ int metal_vfio_dev_open(struct linux_bus *lbus,
 	const char *syspath_ptr;
 	int result;
 
-	ldev->fd = -1;
-	ldev->device.irq_info = (void *)-1;
-
 	ldev->udev = udev_new();
 	if (!ldev->udev) {
 		metal_log(METAL_LOG_ERROR, "%s: failed to allocated udev\n",
