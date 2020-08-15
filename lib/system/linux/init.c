@@ -158,8 +158,11 @@ int metal_sys_init(const struct metal_init_params *params)
 	/* Initialize ION shared memory pool */
 	metal_linux_init_shmem();
 
+#ifdef HAVE_SMMU_H
 	/* Initialize iova allocator */
 	metal_iova_init();
+#endif
+
 	return 0;
 }
 

@@ -957,11 +957,15 @@ int metal_devname_from_addr(unsigned long addr, char *dev_name)
 			if (fd < 0)
 				continue;
 
-			ret = read(fd, &value, 8);
-			if (ret < 0)
+			ret = read(fd, &value, sizeof(unsigned long));
+			if (ret < 0) {
 				return ret;
-
-			value = bswap_64(value);
+			} else {
+				if (ret > 4)
+					value = bswap_64(value);
+				else
+					value = bswap_32(value);
+			}
 
 			if (value == addr) {
 				sys_name = udev_device_get_sysname(device);
