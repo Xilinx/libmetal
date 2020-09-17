@@ -656,11 +656,12 @@ static int vfio_probe(struct linux_device *ldev,
 
 	drv_name = udev_device_get_driver(ldev->udev_device);
 	if (!drv_name || strcmp(drv_name, ldrv->drv_name)) {
-		metal_log(METAL_LOG_WARNING,
-			  "Bound to incompatible driver: %s expected: %s\n",
-			  drv_name, ldrv->drv_name);
 
 		if (drv_name != NULL ) {
+			metal_log(METAL_LOG_WARNING,
+				  "Bound to incompatible driver: %s expected: %s\n",
+				  drv_name, ldrv->drv_name);
+
 			ret = snprintf(path, sizeof(path),
 				       "/sys/bus/platform/devices/%s/driver",
 				       ldev->dev_name);
@@ -716,17 +717,20 @@ static int vfio_probe(struct linux_device *ldev,
 		if (ret)
 			return ret;
 	}
-
-	group = find_groupid(ldev->dev_name);
-	if (group < 0) {
-		metal_log(METAL_LOG_ERROR,
-			  "Failed to get groupid for device: %s\n",
-			  ldev->dev_name);
-		return -ENODEV;
+	if (drv_name) {
+		group = find_groupid(ldev->dev_name);
+		if (group < 0) {
+			metal_log(METAL_LOG_ERROR,
+				  "Failed to get groupid for device: %s\n",
+				  ldev->dev_name);
+			return -ENODEV;
+		} else {
+			metal_log(METAL_LOG_DEBUG,
+				  "Got group: %d for device: %s\n", group,
+				  ldev->dev_name);
+		}
 	} else {
-		metal_log(METAL_LOG_DEBUG,
-			  "Got group: %d for device: %s\n", group,
-			  ldev->dev_name);
+		group = -ENODEV;
 	}
 
 	return group;
@@ -932,7 +936,9 @@ static int metal_vfio_dev_bind(struct linux_device *ldev,
 
 	group = vfio_probe(ldev, ldrv);
 	if (group < 0) {
-		metal_log(METAL_LOG_WARNING, "Failed to find group\n");
+		/* ony report group missing if there is extant group */
+		if (udev_device_get_driver(ldev->udev_device) != NULL)
+			metal_log(METAL_LOG_WARNING, "Failed to find group\n");
 		return -ENODEV;
 	}
 
