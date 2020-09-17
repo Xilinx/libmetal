@@ -77,7 +77,8 @@ static int metal_uio_read_map_attr(struct linux_device *ldev, unsigned index,
 	result = metal_read_attr(path, value);
 	if (result < 0) {
 		metal_log(METAL_LOG_WARNING,
-			  "Error reading from attribute %s\n", path);
+			  "reading attribute %s yields result %d\n",
+			  path, result);
 		return result;
 	}
 
@@ -94,11 +95,12 @@ static int metal_uio_dev_bind(struct linux_device *ldev,
 
 	drv_name = udev_device_get_driver(ldev->udev_device);
 	if (!drv_name || strcmp(drv_name, ldrv->drv_name)) {
-		metal_log(METAL_LOG_ERROR,
-			  "Bound to incompatible driver: %s expected: %s\n",
-			  drv_name, ldrv->drv_name);
 
 		if (drv_name != NULL ) {
+			metal_log(METAL_LOG_ERROR,
+				  "Bound to incompatible driver: %s expected: %s\n",
+				  drv_name, ldrv->drv_name);
+
 			result = snprintf(path, sizeof(path),
 					  "/sys/bus/platform/devices/%s/driver",
 					  ldev->dev_name);
