@@ -953,19 +953,22 @@ int metal_generic_dev_sys_open(struct metal_device *dev)
 	return 0;
 }
 
-int metal_linux_exec_cmd(const char *command, char *path)
+int metal_linux_exec_cmd(const char *cmd_str, char *cmd_path)
 {
 	int fd, ret;
 
-	fd = open(path, O_WRONLY);
-	if (fd < 0)
+	fd = open(cmd_path, O_WRONLY);
+	if (fd < 0) {
+		metal_log(METAL_LOG_ERROR, "%s: %d: open(%s): errno=%d\n",
+			  __func__, __LINE__, cmd_path, errno);
 		return -EINVAL;
+	}
 
-	ret = write(fd, command, strlen(command));
+	ret = write(fd, cmd_str, strlen(cmd_str));
 	if (ret < 0) {
 		metal_log(METAL_LOG_WARNING,
-			"%s: %d: executing system command '%s' failed.\n",
-			__func__, __LINE__, command);
+			  "%s: %d: write '%s' to %s: errno=%d\n",
+			  __func__, __LINE__, cmd_str, cmd_path, errno);
 		return -EINVAL;
 	}
 
