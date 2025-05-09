@@ -58,7 +58,7 @@
 #define IPI_MASK 0x08
 #endif /* !IPI_MASK */
 
-#ifdef IS_VERSALGEN2
+#ifdef IS_VERSAL2
 
 #ifndef TTC_DEV_NAME
 #define TTC_DEV_NAME "f1e60000.ttc0"
@@ -70,7 +70,7 @@
 #define TTC_DEV_NAME "fd1c0000.ttc0"
 #endif /* !TTC_DEV_NAME */
 
-#endif /* IS_VERSALGEN2 */
+#endif /* IS_VERSAL2 */
 
 #endif
 

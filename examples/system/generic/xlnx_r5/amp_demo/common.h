@@ -50,11 +50,21 @@
 
 #elif defined(VERSAL_NET)
 
+#ifdef IS_VERSAL2
+
+#define TTC0_BASE_ADDR 0xF1E60000
+#define TTC_DEV_NAME "f1e60000.ttc"
+
+#else  /* Versal NET Case */
+
 #define TTC0_BASE_ADDR 0xFD1C0000
+#define TTC_DEV_NAME "fd1c0000.ttc"
+
+#endif /* IS_VERSAL2 */
+
 #define IPI_BASE_ADDR 0xEB340000
 #define IPI_IRQ_VECT_ID 90
 #define IPI_MASK 0x0000020
-#define TTC_DEV_NAME "fd1c0000.ttc"
 #define IPI_DEV_NAME "eb340000.ipi"
 #endif
 
