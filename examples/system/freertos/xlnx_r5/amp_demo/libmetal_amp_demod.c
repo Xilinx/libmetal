@@ -39,9 +39,6 @@
   *     * If "shutdown" message is received, cleanup the libmetal source.
   */
 
-#include <FreeRTOS.h>
-#include <task.h>
-
 #include <unistd.h>
 #include <metal/atomic.h>
 #include <metal/io.h>
@@ -49,7 +46,7 @@
 #include <metal/irq.h>
 #include "common.h"
 
-static TaskHandle_t comm_task;
+TaskHandle_t comm_task;
 
 /**
  * @brief    demo application main processing task

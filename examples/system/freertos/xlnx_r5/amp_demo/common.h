@@ -23,6 +23,9 @@
 #include <sys/types.h>
 #include "sys_init.h"
 
+#include <FreeRTOS.h>
+#include <task.h>
+
 #if defined(PLATFORM_ZYNQMP)
 
 #define TTC0_BASE_ADDR 0xff110000
@@ -101,6 +104,8 @@
 extern struct metal_device *ipi_dev; /* IPI metal device */
 extern struct metal_device *shm_dev; /* SHM metal device */
 extern struct metal_device *ttc_dev; /* TTC metal device */
+
+extern TaskHandle_t comm_task; /* Task used for the demo execution. */
 
 /**
  * @brief   atomic_shmem_demod() - Shared memory atomic operation demo
@@ -190,6 +195,27 @@ static inline void wait_for_interrupt()
 static inline void  wait_for_notified(atomic_flag *notified)
 {
 	while (atomic_flag_test_and_set(notified));
+}
+
+/**
+ * @brief wake_processing_task - This routine will wake the demo task
+ *
+ * For AMD Implementation, the suspended task needs to be resumed
+ * and the scheduler needs an explicit signal for context switch. Call
+ * that in this routine.
+ */
+static inline void wake_processing_task(void)
+{
+		/* Resume the suspended task. */
+		xTaskResumeFromISR(comm_task);
+
+		/*
+		 * AMD Implementation requires this call so that
+		 * sheduler knows to do context switch. Otherwise
+		 * the scheduler does not know that a context switch
+		 * should occur.
+		 */
+		portYIELD_FROM_ISR(pdTRUE);
 }
 
 /**

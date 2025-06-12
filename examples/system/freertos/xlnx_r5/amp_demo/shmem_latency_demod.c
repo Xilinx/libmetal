@@ -46,12 +46,13 @@
 
 #define BUF_SIZE_MAX 4096
 
+extern TaskHandle_t comm_task;
+
 struct channel_s {
 	struct metal_io_region *ipi_io; /* IPI metal i/o region */
 	struct metal_io_region *shm_io; /* Shared memory metal i/o region */
 	struct metal_io_region *ttc_io; /* TTC metal i/o region */
 	uint32_t ipi_mask; /* RPU IPI mask */
-	atomic_flag remote_nkicked; /* 0 - kicked from remote */
 };
 
 struct msg_hdr_s {
@@ -120,8 +121,8 @@ static int ipi_irq_handler (int vect_id, void *priv)
 		val = metal_io_read32(ch->ipi_io, IPI_ISR_OFFSET);
 		if (val & ch->ipi_mask) {
 			metal_io_write32(ch->ipi_io, IPI_ISR_OFFSET,
-					ch->ipi_mask);
-			atomic_flag_clear(&ch->remote_nkicked);
+					 ch->ipi_mask);
+			wake_processing_task();
 			return METAL_IRQ_HANDLED;
 		}
 	}
@@ -154,7 +155,7 @@ static int measure_shmem_latencyd(struct channel_s *ch)
 
 	LPRINTF("Starting IPI latency demo\r\n");
 	while(1) {
-		wait_for_notified(&ch->remote_nkicked);
+		vTaskSuspend(NULL);
 		if (metal_io_read32(ch->shm_io, SHM_DEMO_CNTRL_OFFSET) ==
 			DEMO_STATUS_START) {
 			/* Read message header from shared memory */
@@ -247,9 +248,6 @@ int shmem_latency_demod()
 	/* Register IPI irq handler */
 	metal_irq_register(ipi_irq, ipi_irq_handler, &ch);
 	metal_irq_enable(ipi_irq);
-	/* initialize remote_nkicked */
-	ch.remote_nkicked = (atomic_flag)ATOMIC_FLAG_INIT;
-	atomic_flag_test_and_set(&ch.remote_nkicked);
 	/* Enable IPI interrupt */
 	metal_io_write32(ch.ipi_io, IPI_IER_OFFSET, IPI_MASK);
 

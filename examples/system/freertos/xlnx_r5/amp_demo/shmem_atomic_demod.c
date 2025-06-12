@@ -32,9 +32,6 @@
 #define DEMO_STATUS_IN_PROGRESS 0x0
 #define DEMO_STATUS_DONE	 0x1 /* Status value to indicate demo start */
 
-static atomic_flag remote_nkicked; /* is remote kicked, 0 - kicked,
-				       1 - not-kicked */
-
 static int ipi_irq_handler (int vect_id, void *priv)
 {
 	(void)vect_id;
@@ -47,7 +44,7 @@ static int ipi_irq_handler (int vect_id, void *priv)
 	val = metal_io_read32(ipi_io, IPI_ISR_OFFSET);
 	if (val & ipi_mask) {
 		metal_io_write32(ipi_io, IPI_ISR_OFFSET, ipi_mask);
-		atomic_flag_clear(&remote_nkicked);
+		wake_processing_task();
 		return METAL_IRQ_HANDLED;
 	}
 	return METAL_IRQ_NOT_HANDLED;
@@ -83,7 +80,7 @@ int atomic_add_shmemd(struct metal_io_region *ipi_io,
 					ATOMIC_INT_OFFSET);
 
 	/* Wait for notification from the remote to start the demo */
-	wait_for_notified(&remote_nkicked);
+	vTaskSuspend(NULL);
 
 	/* Do atomic add over the shared memory */
 	for (i = 0; i < ITERATIONS; i++)
@@ -136,11 +133,12 @@ int atomic_shmem_demod()
 	/* Get the IPI IRQ from the opened IPI device */
 	ipi_irq = (intptr_t)ipi_dev->irq_info;
 
+	/* clear old IPI interrupt */
+	metal_io_write32(ipi_io, IPI_ISR_OFFSET, IPI_MASK);
+
+	/* Register IPI irq handler */
 	metal_irq_register(ipi_irq, ipi_irq_handler, ipi_io);
 	metal_irq_enable(ipi_irq);
-	/* initialize remote_nkicked */
-	remote_nkicked = (atomic_flag)ATOMIC_FLAG_INIT;
-	atomic_flag_test_and_set(&remote_nkicked);
 	/* Enable IPI interrupt */
 	metal_io_write32(ipi_io, IPI_IER_OFFSET, IPI_MASK);
 

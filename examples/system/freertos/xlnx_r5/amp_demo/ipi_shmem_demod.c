@@ -65,9 +65,6 @@ struct msg_hdr_s {
 	uint32_t len;
 };
 
-static atomic_flag remote_nkicked; /* is remote kicked, 0 - kicked,
-				       1 - not-kicked */
-
 static int ipi_irq_handler (int vect_id, void *priv)
 {
 	(void)vect_id;
@@ -80,7 +77,7 @@ static int ipi_irq_handler (int vect_id, void *priv)
 	val = metal_io_read32(ipi_io, IPI_ISR_OFFSET);
 	if (val & ipi_mask) {
 		metal_io_write32(ipi_io, IPI_ISR_OFFSET, ipi_mask);
-		atomic_flag_clear(&remote_nkicked);
+		wake_processing_task();
 		return METAL_IRQ_HANDLED;
 	}
 	return METAL_IRQ_NOT_HANDLED;
@@ -132,7 +129,7 @@ static int ipi_shmem_echod(struct metal_io_region *ipi_io,
 	LPRINTF("Wait for echo test to start.\n");
 	rx_count = 0;
 	while (1) {
-		wait_for_notified(&remote_nkicked);
+		vTaskSuspend(NULL);
 		rx_avail = metal_io_read32(shm_io, rx_avail_offset);
 		while(rx_count != rx_avail) {
 			uint32_t buf_phy_addr_32;
@@ -262,9 +259,6 @@ int ipi_shmem_demod()
 	/* Register IPI irq handler */
 	metal_irq_register(ipi_irq, ipi_irq_handler, ipi_io);
 	metal_irq_enable(ipi_irq);
-	/* initialize remote_nkicked */
-	remote_nkicked = (atomic_flag)ATOMIC_FLAG_INIT;
-	atomic_flag_test_and_set(&remote_nkicked);
 	/* Enable IPI interrupt */
 	metal_io_write32(ipi_io, IPI_IER_OFFSET, IPI_MASK);
 
