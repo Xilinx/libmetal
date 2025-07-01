@@ -71,6 +71,7 @@
 /* Devices names */
 #define BUS_NAME        "generic"
 #define SHM_DEV_NAME	"3ed80000.shm"
+#define TTC_NODEID PM_DEV_TTC_0
 
 #define INTC_DEVICE_ID		XPAR_SCUGIC_0_DEVICE_ID
 #define SHM_BASE_ADDR   0x3ED80000

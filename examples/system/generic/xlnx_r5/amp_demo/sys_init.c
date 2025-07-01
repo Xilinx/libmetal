@@ -13,6 +13,8 @@
 #include <xstatus.h>
 #include <xscugic.h>
 #include <xreg_cortexr5.h>
+#include <xipipsu.h>
+#include <pm_api_sys.h>
 
 #include <metal/io.h>
 #include <metal/device.h>
@@ -298,6 +300,48 @@ void close_metal_devices(void)
 		metal_device_close(ttc_dev);
 }
 
+static XStatus init_ttc(void)
+{
+	XPm_NodeStatus NodeStatus = {0};
+	XIpiPsu_Config *IpiCfgPtr;
+	XIpiPsu IpiInst;
+
+	/* Look Up the config data */
+	IpiCfgPtr = XIpiPsu_LookupConfig(XPAR_XIPIPSU_0_BASEADDR);
+	if (!IpiCfgPtr) {
+		LPERROR("%s ERROR in getting CfgPtr\n", __func__);
+		return -EINVAL;
+	}
+
+	/* Init with the Cfg Data */
+	if (XIpiPsu_CfgInitialize(&IpiInst, IpiCfgPtr, IpiCfgPtr->BaseAddress) != XST_SUCCESS) {
+		LPERROR("Unable to configure IPI Instance for xilpm\n");
+		return -EINVAL;
+	}
+
+	if (XPm_InitXilpm(&IpiInst) != XST_SUCCESS) {
+		LPERROR("Failed to init xilpm\n");
+		return -EINVAL;
+	}
+
+	if (XPm_GetNodeStatus(TTC_NODEID, &NodeStatus) != XST_SUCCESS) {
+		LPERROR("XPm_GetNodeStatus failed\n");
+		return -EINVAL;
+	}
+
+	/*
+	 * If node status is 1, then TTC is powered on.
+	 * Else attempt to power on TTC.
+	 */
+	if (!NodeStatus.status == 0 &&
+	    XPm_RequestNode(TTC_NODEID, PM_CAP_ACCESS, 100, 0) != XST_SUCCESS) {
+		LPERROR("TTC device was powered off. Attempt to power on failed.\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 /**
  * @brief sys_init() - Register libmetal devices.
  *        This function register the libmetal generic bus, and then
@@ -309,12 +353,20 @@ void close_metal_devices(void)
 int sys_init()
 {
 	struct metal_init_params metal_param = METAL_INIT_DEFAULTS;
+	struct metal_io_region *io = NULL;
 	int ret;
 
 	enable_caches();
 	init_uart();
+
 	if (init_irq()) {
 		LPERROR("Failed to initialize interrupt\n");
+		return XST_FAILURE;
+	}
+
+	if (init_ttc() != XST_SUCCESS) {
+		LPERROR("Failed to init IPI for xilpm\n");
+		return XST_FAILURE;
 	}
 
 	/* Initialize libmetal environment */
@@ -339,6 +391,29 @@ int sys_init()
 		LPERROR("%s: failed to open devices: %d\n", __func__, ret);
 		return ret;
 	}
+
+	/* wipe pending interrupts */
+	io = metal_device_io_region(ipi_dev, 0);
+	if (!io) {
+		LPERROR("Failed to map io region for %s.\n", ipi_dev->name);
+	} else {
+		/* disable IPI interrupt */
+		metal_io_write32(io, IPI_IDR_OFFSET, IPI_MASK);
+		/* clear old IPI interrupt */
+		metal_io_write32(io, IPI_ISR_OFFSET, IPI_MASK);
+	}
+
+	/*
+	 * Buffer clean up. Do this at start in case a
+	 * previous run was stopped midway.
+	 */
+	io = metal_device_io_region(shm_dev, 0);
+	if (!io) {
+		LPERROR("Failed to map io region for %s.\n", shm_dev->name);
+	} else {
+		metal_io_block_set(io, 0, 0, 0x400000);
+	}
+
 	return 0;
 }
 

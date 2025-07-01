@@ -10,6 +10,7 @@ if (HAS_SYSTEM_DT)
   # for compilation.
   collect(PROJECT_LIB_DEPS xilstandalone)
   collect(PROJECT_LIB_DEPS xiltimer)
+  collect(PROJECT_LIB_DEPS xilpm)
 endif(HAS_SYSTEM_DT)
 
 set (_lib "xil")
