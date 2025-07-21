@@ -24,8 +24,19 @@
 #include <xil_printf.h>
 #include "sys_init.h"
 
+/*
+ * For Versal and future SOCs, pm_defs.h exists today but will be
+ * deprecated. Use xpm_defs.h for those board families.
+ */
+#if defined(PLATFORM_ZYNQMP)
+#include "pm_defs.h"
+#else
+#include "xpm_nodeid.h"
+#endif
+
 #if defined(PLATFORM_ZYNQMP)
 
+#define TTC_NODEID NODE_TTC_0
 #define TTC0_BASE_ADDR 0xff110000
 #define TTC_DEV_NAME "ff110000.ttc"
 #define IPI_MASK 0x1000000
@@ -62,6 +73,11 @@
 
 #endif /* IS_VERSAL2 */
 
+/* Symbol name is same for all non-ZynqMP SOC's. */
+#ifndef PLATFORM_ZYNQMP
+#define TTC_NODEID PM_DEV_TTC_0
+#endif
+
 #define IPI_BASE_ADDR 0xEB340000
 #define IPI_IRQ_VECT_ID 90
 #define IPI_MASK 0x0000020
@@ -71,7 +87,6 @@
 /* Devices names */
 #define BUS_NAME        "generic"
 #define SHM_DEV_NAME	"3ed80000.shm"
-#define TTC_NODEID NODE_TTC_0
 
 #define INTC_DEVICE_ID		XPAR_SCUGIC_0_DEVICE_ID
 #define SHM_BASE_ADDR   0x3ED80000

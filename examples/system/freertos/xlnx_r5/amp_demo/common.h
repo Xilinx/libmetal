@@ -26,8 +26,19 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
+/*
+ * For Versal and future SOCs, pm_defs.h exists today but will be
+ * deprecated. Use xpm_defs.h for those board families.
+ */
+#if defined(PLATFORM_ZYNQMP)
+#include "pm_defs.h"
+#else
+#include "xpm_nodeid.h"
+#endif
+
 #if defined(PLATFORM_ZYNQMP)
 
+#define TTC_NODEID NODE_TTC_0
 #define TTC0_BASE_ADDR 0xff110000
 #define TTC_DEV_NAME "ff110000.ttc"
 #define IPI_MASK 0x1000000
@@ -70,13 +81,17 @@
 #define IPI_DEV_NAME "eb340000.ipi"
 #endif
 
+/* Symbol name is same for all non-ZynqMP SOC's. */
+#ifndef PLATFORM_ZYNQMP
+#define TTC_NODEID PM_DEV_TTC_0
+#endif
+
 /* Devices names */
 #define BUS_NAME        "generic"
 #define SHM_DEV_NAME	"3ed80000.shm"
 
 #define INTC_DEVICE_ID	XPAR_SCUGIC_0_DEVICE_ID
 #define SHM_BASE_ADDR   0x3ED80000
-#define TTC_NODEID NODE_TTC_0
 
 /* IPI registers offset */
 #define IPI_TRIG_OFFSET 0x0  /* IPI trigger reg offset */
