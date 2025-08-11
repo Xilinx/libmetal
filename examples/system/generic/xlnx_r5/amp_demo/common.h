@@ -73,15 +73,15 @@
 
 #endif /* IS_VERSAL2 */
 
-/* Symbol name is same for all non-ZynqMP SOC's. */
-#ifndef PLATFORM_ZYNQMP
-#define TTC_NODEID PM_DEV_TTC_0
-#endif
-
 #define IPI_BASE_ADDR 0xEB340000
 #define IPI_IRQ_VECT_ID 90
 #define IPI_MASK 0x0000020
 #define IPI_DEV_NAME "eb340000.ipi"
+#endif
+
+/* Symbol name is same for all non-ZynqMP SOC's. */
+#ifndef PLATFORM_ZYNQMP
+#define TTC_NODEID PM_DEV_TTC_0
 #endif
 
 /* Devices names */
