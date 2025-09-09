@@ -12,13 +12,12 @@ if (HAS_SYSTEM_DT)
   collect(PROJECT_LIB_DEPS xiltimer)
 
   # look for xilpm. fall back to xilpm_ng.
-  set (_lib "xilpm")
-  find_library (_lib_path ${_lib})
-  if (_lib_path)
+  find_library (_xilpm_lib_path "xilpm")
+  if (_xilpm_lib_path)
     collect(PROJECT_LIB_DEPS "xilpm")
   else()
     collect(PROJECT_LIB_DEPS "xilpm_ng")
-  endif(_lib_path)
+  endif(_xilpm_lib_path)
 endif(HAS_SYSTEM_DT)
 
 set (_lib "xil")
