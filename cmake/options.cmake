@@ -32,13 +32,13 @@ message ("-- Host:    ${_host}")
 set (_target "${CMAKE_SYSTEM_NAME}/${CMAKE_SYSTEM_PROCESSOR}")
 message ("-- Target:  ${_target}")
 
-if (NOT DEFINED MACHINE)
-  set (MACHINE "Generic")
-endif (NOT DEFINED MACHINE)
-message ("-- Machine: ${MACHINE}")
-
-# handle if '-' in machine name
-string (REPLACE "-" "_" MACHINE ${MACHINE})
+if (DEFINED MACHINE)
+  # handle if '-' in machine name
+  string (REPLACE "-" "_" MACHINE ${MACHINE})
+  message ("-- Machine: ${MACHINE}")
+  string (TOLOWER ${MACHINE}                PROJECT_MACHINE)
+  string (TOUPPER ${MACHINE}                PROJECT_MACHINE_UPPER)
+endif (DEFINED MACHINE)
 
 if (NOT DEFINED PROJECT_SYSTEM)
   string (TOLOWER ${CMAKE_SYSTEM_NAME}      PROJECT_SYSTEM)
@@ -50,8 +50,6 @@ if("${PROJECT_PROCESSOR}" STREQUAL "arm64")
   set (PROJECT_PROCESSOR "aarch64")
 endif()
 string (TOUPPER ${PROJECT_PROCESSOR}      PROJECT_PROCESSOR_UPPER)
-string (TOLOWER ${MACHINE}                PROJECT_MACHINE)
-string (TOUPPER ${MACHINE}                PROJECT_MACHINE_UPPER)
 
 option (WITH_STATIC_LIB "Build with a static library" ON)
 
