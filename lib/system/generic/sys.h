@@ -53,6 +53,20 @@ void sys_irq_restore_enable(unsigned int flags);
  */
 unsigned int sys_irq_save_disable(void);
 
+/**
+ * @brief Enable interruptidentified by the "vector" ID
+ *
+ * External function to define in the machine
+ */
+void sys_irq_enable(unsigned int vector);
+
+/**
+ * @brief Disable interrupt identified by the "vector" IDr
+ *
+ * External function to define in the machine
+ */
+void sys_irq_disable(unsigned int vector);
+
 #endif /* METAL_INTERNAL */
 
 #ifdef __cplusplus
